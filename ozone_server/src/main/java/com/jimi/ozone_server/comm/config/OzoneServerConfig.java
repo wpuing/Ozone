@@ -57,7 +57,6 @@ public class OzoneServerConfig extends JFinalConfig{
 		me.add(dp);
 		ActiveRecordPlugin arp = new ActiveRecordPlugin(dp);
 		me.add(arp);
-		
 	}
 
 	@Override
