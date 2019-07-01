@@ -1,0 +1,158 @@
+package com.jimi.ozone_server.comm.service;
+
+import java.util.List;
+
+import com.jfinal.plugin.activerecord.Db;
+import com.jfinal.plugin.activerecord.Record;
+import com.jimi.ozone_server.comm.constant.IsDelete;
+import com.jimi.ozone_server.comm.model.Result;
+import com.jimi.ozone_server.comm.service.base.BaseMethodService;
+
+/**
+ * 任务分类管理业务类
+ * <br>
+ * <b>2019年6月21日</b>
+ * @author 几米物联自动化部-韦姚忠
+ *
+ */
+public class TaskClassifyService{
+
+	/**
+	 * 删除任务分类
+	 * @param id 任务分类id
+	 * @return 提示用户
+	 */
+	public Result deleteTaskClassify(int id) {
+		System.out.println("业务层id："+id);
+		String sql = "SELECT id,name FROM task_classify WHERE is_delete < 1 AND id = "+id;
+		String tableName = "task_classify";
+		//调用公共删除方法
+		Result result = BaseMethodService.deleteTableRecord(tableName, sql);
+		System.out.println("业务层返回值："+result.getCode()+",信息: " +result.getData()) ;
+		return result;
+	}
+	
+	
+	
+	/**
+	 * 
+	 * @param name 任务分类名称，模糊查询
+	 * @return  返回集合
+	 */
+	public Result findAllTaskClassify(String name,int gantt) {
+		System.out.println("业务层参数--name：" + name+",gantt:"+gantt);
+		List<Record> taskClassifys = null;
+		if (gantt>0) {
+			//查询甘特图是否存在
+			List<Record> gantts = Db.find("SELECT id FROM gantt WHERE is_delete <1 AND id ="+gantt);
+			if (gantts.size()<=0) {
+				// 判断name不为空
+				System.out.println("甘特图不存在");
+				if (!"".equals(name) && name != null) {
+					// 甘特图不存在，name存在
+					System.out.println("甘特图不存在，name存在");
+					taskClassifys = Db.find("SELECT id,name,remark,gantt FROM task_classify WHERE is_delete <1 AND name LIKE '%"+name+"%'");
+				}else {
+					taskClassifys = Db.find("SELECT id,name,remark,gantt FROM task_classify WHERE gantt="+gantt+" AND is_delete <1");
+				}
+			}else {
+				System.out.println("甘特图存在");
+				if (!"".equals(name) && name != null) {
+					System.out.println("甘特图存在，name存在");
+					// 甘特图存在，name存在
+					taskClassifys = Db.find("SELECT id,name,remark,gantt FROM task_classify WHERE gantt="+gantt+" AND is_delete <1 AND name LIKE '%"+name+"%'");
+				}else {
+					taskClassifys = Db.find("SELECT id,name,remark,gantt FROM task_classify WHERE gantt="+gantt+" AND is_delete <1");
+				}
+			}
+		}
+		//甘特图id无，任务分类为空
+		if (gantt==0) {
+			if (!"".equals(name) && name != null) {
+				taskClassifys = Db.find("SELECT id,name,remark,gantt FROM task_classify WHERE is_delete <1 AND name LIKE '%"+name+"%'");
+			}else {
+				System.out.println("甘特图id无，任务分类为空");
+				taskClassifys = Db.find("SELECT id,name,remark,gantt FROM task_classify WHERE  is_delete <1");
+			}
+		}
+		if (gantt<0) {
+			return new Result(400, "无效的id");
+		}
+		System.out.println("业务层集合--ps：" + taskClassifys);
+		return new Result(200, taskClassifys);
+		
+	}
+	
+	
+	
+	/**
+	 * 修改任务分类
+	 * @param name	任务分类名称
+	 * @param remark任务分类备注
+	 * @param gantt 甘特图id
+	 * @return
+	 */
+	public Result updateTaskClassify(int id,String name,String remark,int gantt) {
+		System.out.println("业务层id："+id+",name："+name+",remark："+remark+",gantt："+gantt);
+		if (id<=0) {
+			return new Result(400, "任务分类不存在");
+		}else {
+			Record taskClassify = Db.findFirst("SELECT id,name,remark,gantt FROM task_classify WHERE is_delete < 1 AND id = "+id);
+			if (taskClassify == null) {
+				return new Result(400, "任务分类不存在");
+			}
+			List<Record> gantts = Db.find("SELECT id FROM gantt WHERE is_delete <1 AND id ="+gantt);
+			if (gantts.size()<0) {
+				return new Result(400, "甘特图不存在");
+			}
+			if (name!=null&&!"".equals(name)) {
+				List<Record> taskClassifys = Db.find("SELECT id,name,remark,gantt FROM task_classify WHERE name = '"+name+"' AND is_delete < 1; ");
+				if (taskClassifys.size()>0) {
+					return new Result(400, "存在该任务分类");
+				}
+				Record record = new Record();
+				record.set("id", id);
+				record.set("name", name);
+				record.set("remark", remark);
+				record.set("gantt", gantt);
+				record.set("is_delete", IsDelete.IS_DELETE_ON);
+				boolean b = Db.update("task_classify", record );
+				if (b) {
+					return new Result(200, "修改成功");
+				}
+			}
+		}
+		return new Result(200, "修改失败");
+		
+	}
+	
+	
+	/**
+	 * 添加任务分类
+	 * @param id    任务分类id
+	 * @param name	任务分类名称
+	 * @param remark任务分类备注
+	 * @param gantt 甘特图id
+	 * @return
+	 */
+	public Result addTaskClassify(String name,String remark,int gantt) {
+		System.out.println("业务层name："+name+",remark："+remark+",gantt："+gantt);
+		List<Record> gantts = Db.find("SELECT id FROM gantt WHERE is_delete <1 AND id ="+gantt);
+		if (gantts.size()<0) {
+			return new Result(400, "甘特图不存在");
+		}
+		if (name!=null&&!"".equals(name)) {
+			Record record = new Record();
+			record.set("name", name);
+			record.set("remark", remark);
+			record.set("gantt", gantt);
+			record.set("is_delete", IsDelete.IS_DELETE_ON);
+			boolean b = Db.save("task_classify", record );
+			if (b) {
+				return new Result(200, "添加成功");
+			}
+		}
+		return new Result(200, "添加失败");
+		
+	}
+}
