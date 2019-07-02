@@ -10,6 +10,7 @@ import com.jfinal.core.JFinal;
 import com.jfinal.kit.Prop;
 import com.jfinal.kit.PropKit;
 import com.jfinal.plugin.activerecord.ActiveRecordPlugin;
+import com.jfinal.plugin.activerecord.tx.TxByMethodRegex;
 import com.jfinal.plugin.druid.DruidPlugin;
 import com.jfinal.template.Engine;
 import com.jimi.ozone_server.comm.controller.GanttController;
@@ -18,6 +19,7 @@ import com.jimi.ozone_server.comm.controller.PersonnelClassifyController;
 import com.jimi.ozone_server.comm.controller.PersonnelController;
 import com.jimi.ozone_server.comm.controller.TaskClassifyController;
 import com.jimi.ozone_server.comm.controller.TaskController;
+import com.jimi.ozone_server.comm.exception.ExceptionIntoLogInterceptor;
 
 public class OzoneServerConfig extends JFinalConfig{
 	
@@ -61,7 +63,19 @@ public class OzoneServerConfig extends JFinalConfig{
 
 	@Override
 	public void configInterceptor(Interceptors me) {
-		// TODO Auto-generated method stub
+		//全局拦截器，对所有请求拦截
+		 
+        //添加控制层全局拦截器
+        //interceptors.addGlobalActionInterceptor(new GlobalActionInterceptor());
+		me.addGlobalActionInterceptor(new ExceptionIntoLogInterceptor());
+        //添加业务层全局拦截器
+        //interceptors.addGlobalServiceInterceptor(new GlobalServiceInterceptor());
+		//me.addGlobalServiceInterceptor(new ExceptionIntoLogInterceptor());
+ 
+        //兼容老版jfinal写法
+        //interceptors.add(new GlobalActionInterceptor());
+//		new TxByMethodRegex("(.*save.*|.*update.*|.*delete.*)");
+		me.add(new TxByMethodRegex("(.*save.*|.*update.*|.*delete.*)"));
 		
 	}
 
