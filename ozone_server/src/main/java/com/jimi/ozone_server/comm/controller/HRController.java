@@ -13,7 +13,9 @@ import com.jimi.ozone_server.comm.service.HRService;
  */
 
 public class HRController extends Controller {
+	
 	public static HRService hrService = Enhancer.enhance(HRService.class);
+	
 	
 	/*
 	 * 查询人力资源

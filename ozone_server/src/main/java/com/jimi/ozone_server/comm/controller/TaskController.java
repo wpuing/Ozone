@@ -17,7 +17,9 @@ import com.jimi.ozone_server.comm.service.base.BaseMethodService;
  *
  */
 public class TaskController extends Controller {
+	
 	private static TaskService taskService = Enhancer.enhance(TaskService.class);
+	
 	
 	/*
 	 * 添加任务
@@ -25,113 +27,97 @@ public class TaskController extends Controller {
 	public void addTaskInfoAll() {
 		SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd");
 		sdf.setLenient(false);
-		
-		boolean is_coerce = Boolean.parseBoolean(getPara("is_coerce"));
-		System.out.println("控制器接收is_coerce："+is_coerce);
-		
+		boolean isCoerce = Boolean.parseBoolean(getPara("is_coerce"));
 		String predecessorTasks = getPara("predecessorTasks");
-		System.out.println("控制器接收predecessorTasks："+predecessorTasks);
-		
 		String executor = getPara("executor");
-		System.out.println("控制器接收executor："+executor);
-		
 		String name = getPara("name");
-		System.out.println("控制器接收name："+name);
-		
 		int gantt = Integer.parseInt(getPara("gantt"));
-		System.out.println("控制器接收gantt："+gantt);
-		
-		int task_classify = Integer.parseInt(getPara("task_classify"));
-		System.out.println("控制器接收task_classify："+task_classify);
-		
+		int taskClassify = Integer.parseInt(getPara("task_classify"));
 		String remark = getPara("remark");
-		System.out.println("控制器接收remark："+remark);
-		
-		Date actual_end_date = null;
-		Date plans_end_date = null;
-		Date start_date = null;
+		Date actualEndDate = null;
+		Date plansEndDate = null;
+		Date startDate = null;
+		String startDateStr = getPara("start_date");
+		String actualEndDateStr = getPara("actual_end_date");
+		String plansEndDateStr = getPara("plans_end_date");
 		try {
-			actual_end_date = sdf.parse(getPara("actual_end_date"));
-			System.out.println("控制器接收actual_end_date："+actual_end_date);
-			start_date = sdf.parse(getPara("start_date"));
-			System.out.println("控制器接收start_date："+start_date);
-			plans_end_date = sdf.parse(getPara("plans_end_date"));
-			System.out.println("控制器接收plans_end_date："+plans_end_date);
+			if (startDateStr !=null) {
+				startDate = sdf.parse(getPara("start_date"));
+			}
+			if (actualEndDateStr !=null) {
+				actualEndDate = sdf.parse(getPara("actual_end_date"));
+			}
+			if (plansEndDateStr !=null) {
+				plansEndDate = sdf.parse(getPara("plans_end_date"));
+			}
+			
 		} catch (ParseException e) {
 			e.printStackTrace();
 		}
-		
-		Result result = taskService.addTask(name, start_date, plans_end_date, actual_end_date, task_classify, gantt, remark, predecessorTasks, executor, is_coerce);
-		
+		Result result = taskService.addTask(name, startDate, plansEndDate, actualEndDate, taskClassify, gantt, remark, predecessorTasks, executor, isCoerce);
 		renderJson(result);
 	}
 
-
-	
 	
 	/*
 	 * 修改任务
 	 */
-	public void updateTaskInfo(Object taskId, String numbers) {
+	public void updateTaskInfo() {
 		SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd");
 		sdf.setLenient(false);
-		
-		boolean is_coerce = Boolean.parseBoolean(getPara("is_coerce"));
-		System.out.println("控制器接收is_coerce："+is_coerce);
-		
+		boolean isCoerce = Boolean.parseBoolean(getPara("is_coerce"));
 		String predecessorTasks = getPara("predecessorTasks");
-		System.out.println("控制器接收predecessorTasks："+predecessorTasks);
-		
 		String executor = getPara("executor");
-		System.out.println("控制器接收executor："+executor);
 		int id = 0;
 		String idStr = getPara("id");
 		if (idStr!=null) {
-			Integer newId =BaseMethodService.isParameterType(idStr);
+			Integer newId =BaseMethodService.handleParameterType(idStr);
 			if (newId!=null) {
 				id = newId;
 			}
 		}
-		System.out.println("控制器接收name："+id);
-		
 		String name = getPara("name");
-		System.out.println("控制器接收name："+name);
-		
-		int gantt = Integer.parseInt(getPara("gantt"));
-		System.out.println("控制器接收gantt："+gantt);
-		
-		int task_classify = Integer.parseInt(getPara("task_classify"));
-		System.out.println("控制器接收task_classify："+task_classify);
-		
+		int gantt = 0;
+		String ganttStr = getPara("gantt");
+		if (ganttStr!=null) {
+			Integer newId =BaseMethodService.handleParameterType(ganttStr);
+			if (newId!=null) {
+				gantt = newId;
+			}
+		}
+		int taskClassify = 0;
+		String taskClassifytStr = getPara("task_classify");
+		if (taskClassifytStr!=null) {
+			Integer newId =BaseMethodService.handleParameterType(taskClassifytStr);
+			if (newId!=null) {
+				taskClassify = newId;
+			}
+		}
 		String remark = getPara("remark");
-		System.out.println("控制器接收remark："+remark);
-		
-		Date actual_end_date = null;
-		Date plans_end_date = null;
-		Date start_date = null;
+		Date actualEndDate = null;
+		Date plansEndDate = null;
+		Date startDate = null;
+		String startDateStr = getPara("start_date");
+		String actualEndDateStr = getPara("actual_end_date");
+		String plansEndDateStr = getPara("plans_end_date");
 		try {
-			actual_end_date = sdf.parse(getPara("actual_end_date"));
-			System.out.println("控制器接收actual_end_date："+actual_end_date);
-			start_date = sdf.parse(getPara("start_date"));
-			System.out.println("控制器接收start_date："+start_date);
-			plans_end_date = sdf.parse(getPara("plans_end_date"));
-			System.out.println("控制器接收plans_end_date："+plans_end_date);
+			if (startDateStr !=null) {
+				startDate = sdf.parse(getPara("start_date"));
+			}
+			if (actualEndDateStr !=null) {
+				actualEndDate = sdf.parse(getPara("actual_end_date"));
+			}
+			if (plansEndDateStr !=null) {
+				plansEndDate = sdf.parse(getPara("plans_end_date"));
+			}
+			
 		} catch (ParseException e) {
 			e.printStackTrace();
 		}
-		
-		Result result = taskService.updateTask(id,name, start_date, plans_end_date, actual_end_date, task_classify, gantt, remark, predecessorTasks, executor, is_coerce);
-		
+		Result result = taskService.updateTask(id,name, startDate, plansEndDate, actualEndDate, taskClassify, gantt, remark, predecessorTasks, executor, isCoerce);
 		renderJson(result);
-		
-		
 	}
 
-
-
-
-	
-	
 	
 	/*
 	 * 查询任务
@@ -140,7 +126,6 @@ public class TaskController extends Controller {
 		String name = getPara("name");
 		Result result = taskService.findAllTask(name);
 		renderJson(result);
-		
 	}
 	
 	
@@ -152,31 +137,12 @@ public class TaskController extends Controller {
 		String ids = getPara("ids");
 		String[] newNumbers = ids.split(",");
 		for (String idStr : newNumbers) {
-			Integer newId = BaseMethodService.isParameterType(idStr);
+			Integer newId = BaseMethodService.handleParameterType(idStr);
 			if (newId!=null) {
 				result = taskService.deleteTask(newId);
 			}
 		}
 		renderJson(result);
-		
-		
-//		String id_str = getPara("ids");
-//		String[] ids = id_str.split(",");
-//		Result result = null;
-//		for (String id : ids) {
-//			result = taskService.deleteTask(Integer.parseInt(id));
-//			System.out.println("控制层返回值："+result.getCode()+",信息: " +result.getData()) ;
-//		}
-//		renderJson(result);
-		
-		
 	}
 	
-
-
-
-
-
-	
-
 }

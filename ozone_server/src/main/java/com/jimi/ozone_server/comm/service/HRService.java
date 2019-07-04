@@ -16,6 +16,7 @@ import com.jimi.ozone_server.comm.model.Result;
  */
 public class HRService {
 	
+	
 	/**
 	 * 查询人力资源
 	 * @return 返回人力资源信息
@@ -40,16 +41,17 @@ public class HRService {
 					//4.根据得到的人员任务列表的任务id得到该任务
 					List<Record> oneTasks = Db.find("SELECT id,name,gantt FROM task WHERE is_delete < 1 AND id = "+task_id);
 					//得到该任务
-					Record task = oneTasks.get(0);
-					int gantt_id = oneTasks.get(0).get("gantt");
-					//5.根据任务的甘特图外键得到甘特图信息
-					List<Record> gantts = Db.find("SELECT id,name FROM gantt WHERE is_delete <1 AND id = "+gantt_id);
-					Record gantt = gantts.get(0);
-					//将甘特图的信息放进任务里面
-					task.set("task_gantt", gantt);
-					//将个人任务放进集合中
-					tasks.add(task);
-					
+					if (oneTasks.size()>0) {
+						Record task = oneTasks.get(0);
+						int gantt_id = oneTasks.get(0).get("gantt");
+						//5.根据任务的甘特图外键得到甘特图信息
+						List<Record> gantts = Db.find("SELECT id,name FROM gantt WHERE is_delete <1 AND id = "+gantt_id);
+						Record gantt = gantts.get(0);
+						//将甘特图的信息放进任务里面
+						task.set("task_gantt", gantt);
+						//将个人任务放进集合中
+						tasks.add(task);
+					}
 				}
 				//将个人任务集合放入人员中
 				personnel.set("tasks", tasks);
@@ -64,7 +66,6 @@ public class HRService {
 			newPersonnelClassifys.add(personnelClassify);
 		}
 		return new Result(200, newPersonnelClassifys);
-		
 	}
 
 }

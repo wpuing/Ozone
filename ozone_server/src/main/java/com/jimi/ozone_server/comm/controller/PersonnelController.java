@@ -16,6 +16,7 @@ public class PersonnelController extends Controller {
 	
 	private static PersonnelService personnelService = Enhancer.enhance(PersonnelService.class);
 
+	
 	/*
 	 * 查询人员
 	 */
@@ -34,22 +35,12 @@ public class PersonnelController extends Controller {
 		String ids = getPara("ids");
 		String[] newNumbers = ids.split(",");
 		for (String idStr : newNumbers) {
-			Integer newId = BaseMethodService.isParameterType(idStr);
+			Integer newId = BaseMethodService.handleParameterType(idStr);
 			if (newId!=null) {
 				result = personnelService.deletePersonnel(newId);
 			}
 		}
 		renderJson(result);
-		
-		
-//		String id_str = getPara("ids");
-//		String[] ids = id_str.split(",");
-//		Result result = null;
-//		for (String id : ids) {
-//			result = personnelService.deletePersonnel(Integer.parseInt(id));
-//			System.out.println("控制层返回值："+result.getCode()+",信息: " +result.getData()) ;
-//		}
-//		renderJson(result);
 	}
 	
 	
@@ -58,8 +49,8 @@ public class PersonnelController extends Controller {
 	 */
 	public void insertPer() {
 		String name = getPara("name");
-		int personnel_classify = Integer.parseInt(getPara("personnel_classify","1"));
-		Result result = personnelService.addPersonnel(name, personnel_classify);
+		int personnelClassify = Integer.parseInt(getPara("personnel_classify","1"));
+		Result result = personnelService.addPersonnel(name, personnelClassify);
 		renderJson(result);
 	}
 	
@@ -70,8 +61,9 @@ public class PersonnelController extends Controller {
 	public void updatePer() {
 		int id = Integer.parseInt(getPara("id"));
 		String name = getPara("name");
-		int personnel_classify = Integer.parseInt(getPara("personnel_classify","1"));
-		Result result = personnelService.updatePersonnel(id , name, personnel_classify);
+		int personnelClassify = Integer.parseInt(getPara("personnel_classify","1"));
+		Result result = personnelService.updatePersonnel(id, name, personnelClassify);
 		renderJson(result);
 	}
+	
 }

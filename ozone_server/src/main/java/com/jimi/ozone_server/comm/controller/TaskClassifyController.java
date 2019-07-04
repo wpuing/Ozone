@@ -35,38 +35,18 @@ public class TaskClassifyController extends Controller {
 	 * 删除任务分类
 	 */
 	public void deleteTaskClassify() {
-		
 		Result result = new Result(400, "删除失败");
 		String ids = getPara("ids");
 		String[] newNumbers = ids.split(",");
 		for (String idStr : newNumbers) {
-			Integer newId = BaseMethodService.isParameterType(idStr);
+			Integer newId = BaseMethodService.handleParameterType(idStr);
 			if (newId!=null) {
 				result = taskClassifyService.deleteTaskClassify(newId);
 			}
 		}
 		renderJson(result);
-		
-		
-		
-//		String id_str = getPara("ids");
-//		String[] ids = id_str.split(",");
-//		Result result = null;
-//		for (String id : ids) {
-//			Integer newId = BaseMethodService.isParameterType(id);
-//			if (newId!=null) {
-//				result = taskClassifyService.deleteTaskClassify(newId);
-//			}else {
-//				result = new Result(400, "格式不正确");
-//			}
-//			System.out.println("控制层返回值："+result.getCode()+",信息: " +result.getData()) ;
-//		}
-//		renderJson(result);
 	}
 
-
-	
-	
 	
 	/*
 	 * 添加任务分类

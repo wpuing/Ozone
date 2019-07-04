@@ -14,21 +14,5 @@ public class PersonnelTask extends BasePersonnelTask<PersonnelTask> {
 	
 	public static final PersonnelTask dao = new PersonnelTask().dao();
 	
-	private Personnel personnelPojo;
-
-	public Personnel getPersonnelPojo() {
-		return personnelPojo;
-	}
-
-	public void setPersonnelPojo(Personnel personnelPojo) {
-		this.personnelPojo = personnelPojo;
-	}
-
-	@Override
-	public String toString() {
-		return "PersonnelTask [personnelPojo=" + personnelPojo + "]";
-	}
-	
-	
 	
 }

@@ -7,8 +7,11 @@ import java.util.List;
 
 import com.jfinal.plugin.activerecord.Db;
 import com.jfinal.plugin.activerecord.Record;
-import com.jimi.ozone_server.comm.constant.IsDelete;
+import com.jimi.ozone_server.comm.constant.DeleteStatus;
+import com.jimi.ozone_server.comm.model.PersonnelTask;
 import com.jimi.ozone_server.comm.model.Result;
+import com.jimi.ozone_server.comm.model.Task;
+import com.jimi.ozone_server.comm.model.TaskRelation;
 import com.jimi.ozone_server.comm.service.base.BaseMethodService;
 
 /**
@@ -27,7 +30,6 @@ public class TaskService{
 	 * @return 提示用户
 	 */
 	public Result deleteTask(int id) {
-		System.out.println("业务层id："+id);
 		String sql = "SELECT id,name FROM task WHERE is_delete < 1 AND id = "+id;
 		String tableName = "task";
 		//调用公共删除方法
@@ -36,7 +38,6 @@ public class TaskService{
 		deleteTaskRelation(id);
 		//调用删除人员任务方法
 		deletePersonnelTask(id);
-		System.out.println("业务层返回值："+result.getCode()+",信息: " +result.getData()) ;
 		return result;
 	}
 	
@@ -47,7 +48,6 @@ public class TaskService{
 	 * @return    返回信息提示用户
 	 */
 	public Result findAllTask(String name) {
-		System.out.println("业务层name："+name);
 		String noValueSql = "SELECT id,name,start_date,plans_end_date,actual_end_date,task_classify FROM task WHERE is_delete <1";
 		String  valueSql= "SELECT id,name,start_date,plans_end_date,actual_end_date,task_classify FROM task WHERE is_delete <1 AND name LIKE '%"+name+"%'";
 		List<Record> personnels = null;
@@ -62,7 +62,8 @@ public class TaskService{
 		for (int i = 0; i < personnels.size(); i++) {
 			Record record = personnels.get(i);
 			int taskId = record.get("id");
-			List<Record> taskClassifys = Db.find("SELECT name,remark FROM task_classify WHERE is_delete<1 AND id ="+taskId);
+			int taskClassifyId = record.get("task_classify");
+			List<Record> taskClassifys = Db.find("SELECT name,remark FROM task_classify WHERE is_delete<1 AND id ="+taskClassifyId);
 			List<Record> taskRelations = Db.find("SELECT id,predecessor_task,current_task FROM task_relation WHERE is_delete<1 AND current_task ="+taskId);
 			List<Record> personnelTasks = Db.find("SELECT id,personnel,task,remark FROM personnel_task WHERE is_delete<1 AND task ="+taskId);
 			if (taskClassifys.size()>0) {
@@ -73,13 +74,10 @@ public class TaskService{
 			record.set("predecessorTasks", personnelTasks);
 			record.set("taskRelations", taskRelations);
 			tasks.add(record);
-			
 		}
-		System.out.println("业务层集合--ps：" + personnels);
 		return new Result(200, personnels);
-		
-		
 	}
+	
 	
 	/**
 	 * 添加任务
@@ -95,29 +93,43 @@ public class TaskService{
 	 * @param executor        前置任务		
 	 * @return
 	 */
-	public Result addTask(String name,Date start_date,Date plans_end_date,
-			Date actual_end_date,int task_classify,int gantt,String remark,
-			String predecessorTasks,String executor,boolean is_coerce) {
-		System.out.println("业务层name："+name+",start_date:"+start_date+",plans_end_date:"+plans_end_date+",actual_end_date:"+actual_end_date+",task_classify:"+",gantt:"+gantt+",remark:"+remark);
-		if (name==null&&"".equals(name)&&start_date==null&&plans_end_date==null&&task_classify<=0&&gantt<=0) {
+	public Result addTask(String name,Date startDate,Date plansEndDate,
+			Date actualEndDate,int taskClassifyId,int gantt,String remark,
+			String predecessorTasks,String executor,boolean isCoerce) {
+		if (name==null&&"".equals(name)&&startDate==null&&plansEndDate==null&&taskClassifyId<=0&&gantt<=0) {
 			return new Result(400, "数据不完整");
 		}
+		
 		List<Record> tasks = Db.find("SELECT * from task WHERE is_delete < 1 AND name ='"+name+"'");
 		if (tasks.size()>0) {
 			return new Result(400, "存在该任务");
 		}
-		Result result = null;
+		boolean code = false;
+		Result result = new Result(400, "添加失败");
 		//遍历添加人员任务
-		String[] newExecutor = executor.split(",");
-		for (String personnel : newExecutor) {
-			
-			result = isDate(name, Integer.parseInt(personnel), start_date, plans_end_date, is_coerce, actual_end_date, task_classify, gantt, remark, predecessorTasks, executor);
+		if (executor!=null&&!"".equals(executor)) {
+			//存在人员任务
+			String[] newExecutor = executor.split(",");
+			if (newExecutor.length>0) {
+				for (String personnel : newExecutor) {
+					Integer newId = BaseMethodService.handleParameterType(personnel);
+					if (newId!=null) {
+						result = handleDateInfo( newId, startDate, plansEndDate, isCoerce);
+						code = true;
+					}
+				}
+			}
+		}else {
+			//不存在人员任务
+			result = addTaskInfo(name, startDate, plansEndDate, actualEndDate, taskClassifyId, gantt, remark, predecessorTasks, executor);
+			code = false;
 		}
-		if (result.getCode()==200) {
-			result = addTaskInfo(name, start_date, plans_end_date, actual_end_date, task_classify, gantt, remark, predecessorTasks, executor);
-		}
+		if (result!=null&&code==true) {
+			if (result.getCode()==200) {
+				result = addTaskInfo(name, startDate, plansEndDate, actualEndDate, taskClassifyId, gantt, remark, predecessorTasks, executor);
+				}
+			}
 		return result;
-		
 	}
 	
 	
@@ -135,77 +147,87 @@ public class TaskService{
 	 * @param executor        前置任务		
 	 * @return
 	 */
-	public Result updateTask(int id,String name,Date start_date,Date plans_end_date,
-			Date actual_end_date,int task_classify,int gantt,String remark,
-			String predecessorTasks,String executor,boolean is_coerce) {
-		System.out.println("业务层name："+name+",start_date:"+start_date+",plans_end_date:"+plans_end_date+",actual_end_date:"+actual_end_date+",task_classify:"+",gantt:"+gantt+",remark:"+remark);
-		if (name==null&&"".equals(name)&&start_date==null&&plans_end_date==null&&task_classify<=0&&gantt<=0) {
+	public Result updateTask(int id,String name,Date startDate,Date plansEndDate,
+			Date actualEndDate,int taskClassify,int gantt,String remark,
+			String predecessorTasks,String executor,boolean isCoerce) {
+		if (name==null&&"".equals(name)&&startDate==null&&plansEndDate==null&&taskClassify<=0&&gantt<=0) {
 			return new Result(400, "数据不完整");
 		}
-		Record task_id = Db.findFirst("SELECT * from task WHERE is_delete < 1 AND id ="+id);
-		if (task_id==null) {
+		Task task = Task.dao.findById(id);
+		if (task==null) {
 			return new Result(400, "不存在该任务");
 		}
-		Record task_name = Db.findFirst("SELECT * from task WHERE is_delete < 1 AND name ='"+name+"'");
-		if (task_name!=null) {
+		Record taskName = Db.findFirst("SELECT * from task WHERE is_delete < 1 AND name ='"+name+"'");
+		if (taskName!=null) {
 			return new Result(400, "存在该任务");
 		}
-		Result result = null;
-		//遍历添加人员任务
-		String[] newExecutor = executor.split(",");
-		for (String personnel : newExecutor) {
-			result = isDate(name, Integer.parseInt(personnel), start_date, plans_end_date, is_coerce, actual_end_date, task_classify, gantt, remark, predecessorTasks, executor);
+		Result result = new Result(400, "修改失败");
+		//判断时间是否为空
+		if (startDate==null) {
+			startDate = task.getStartDate();
 		}
-		if (result.getCode()==200) {
-			//依次将之前的人员任务和前置任务删除
+		if (plansEndDate==null) {
+			plansEndDate = task.getPlansEndDate();
+		}
+		//遍历添加人员任务
+		if (executor!=null&&!"".equals(executor)) {
+			//存在人员任务
+			String[] newExecutor = executor.split(",");
+			for (String personnel : newExecutor) {
+				Integer newId = BaseMethodService.handleParameterType(personnel);
+				if (newId!=null) {
+					result = handleDateInfo(newId, startDate, plansEndDate, isCoerce);
+				}
+			}
+		}
+		else {
+			//将当前任务的人员任务删除
 			updatePersonnelTask(id);
-			updateTaskRelation(id);
-			//再执行添加
-			result = updateTaskInfo(id,name, start_date, plans_end_date, actual_end_date, task_classify, gantt, remark, predecessorTasks, executor);
+			result.setCode(200);
+		}
+		if (result!=null) {
+			if (result.getCode()==200) {
+				//依次将之前的人员任务和前置任务删除
+				updatePersonnelTask(id);
+				updateTaskRelation(id);
+				//执行修改
+				result = updateTaskInfo(id,name, startDate, plansEndDate, actualEndDate, taskClassify, gantt, remark, predecessorTasks, executor);
+			}
 		}
 		return result;
-		
 	}
 	
 	
 	/*
 	 *添加任务信息，前置任务信息，人员任务信息
 	 */
-	public Result addTaskInfo(String name,Date start_date,Date plans_end_date,Date actual_end_date,
-			int task_classify,int gantt,String remark,String predecessorTasks,String executor) {
-		Record record = new Record();
-		record.set("name", name);
-		record.set("start_date", start_date);
-		record.set("plans_end_date", plans_end_date);
-		record.set("actual_end_date", actual_end_date);
-		record.set("task_classify", task_classify);
-		record.set("gantt", gantt);
-		record.set("remark", remark);
-		record.set("is_delete", IsDelete.IS_DELETE_ON);
-		System.out.println("---当前要添加的任务信息--"+record);
-		boolean b = Db.save("task", record);
+	public Result addTaskInfo(String name,Date startDate,Date plansEndDate,Date actualEndDate,
+			int taskClassify,int gantt,String remark,String predecessorTasks,String executor) {
+		Task task = handleTaskInfo(0, name, startDate, plansEndDate, actualEndDate, taskClassify, gantt, remark);
+		boolean b = task.save();
 		//判断添加任务成功
 		if (b) {
 			//得到当前任务的id
-			Record task = findOneTask(name);
-			Object taskId = task.get("id");
-			System.out.println("当前任务----"+task);
-			String[]  newExecutor= predecessorTasks.split(",");
-			//遍历添加前置任务
-			for (String taskRelation : newExecutor) {
-				Result result = addTaskRelation(Integer.parseInt(taskRelation),(int) taskId);
-				System.out.println("----添加前置任务---"+result.getData()) ;
+			Record record = findOneTask(name);
+			Object taskId = record.get("id");
+			if (predecessorTasks!=null&&!"".equals(predecessorTasks)) {
+				String[]  taskRelations= predecessorTasks.split(",");
+				//遍历添加前置任务
+				for (String taskRelation : taskRelations) {
+					addTaskRelation(Integer.parseInt(taskRelation),(int) taskId);
+				}
+			}
+			if (executor!=null&&!"".equals(executor)) {
+				//遍历添加人员任务
+				String[] newExecutor = executor.split(",");
+				for (String personnel : newExecutor) {
+					addPersonnelTask((int) taskId, Integer.parseInt(personnel));
+				}
 				
 			}
-			//遍历添加人员任务
-			String[] newPredecessorTasks = executor.split(",");
-			for (String personnel : newPredecessorTasks) {
-				Result result = addPersonnelTask((int) taskId, Integer.parseInt(personnel));
-				System.out.println("----添加人员任务---"+result.getData()) ;
-			}
-			return new Result(200, "添加任务所有信息成功");
+			return new Result(200, "添加任务信息成功");
 		}else {
-			return new Result(400, "添加任务所有信息失败");
+			return new Result(400, "添加任务信息失败");
 		}
 	}
 	
@@ -213,45 +235,35 @@ public class TaskService{
 	/*
 	 *修改任务信息，前置任务信息，人员任务信息
 	 */
-	public Result updateTaskInfo(int id,String name,Date start_date,Date plans_end_date,Date actual_end_date,
-			int task_classify,int gantt,String remark,String predecessorTasks,String executor) {
-		Record record = new Record();
-		record.set("id", id);
-		record.set("name", name);
-		record.set("start_date", start_date);
-		record.set("plans_end_date", plans_end_date);
-		record.set("actual_end_date", actual_end_date);
-		record.set("task_classify", task_classify);
-		record.set("gantt", gantt);
-		record.set("remark", remark);
-		record.set("is_delete", IsDelete.IS_DELETE_ON);
-		System.out.println("---当前要添加的任务信息--"+record);
-		boolean b = Db.update("task", record);
-		//判断添加任务成功
+	public Result updateTaskInfo(int id,String name,Date startDate,Date plansEndEate,Date actualEndDate,
+			int taskClassifyId,int gantt,String remark,String taskR,String executor) {
+		Task task = handleTaskInfo(id, name, startDate, plansEndEate, actualEndDate, taskClassifyId, gantt, remark);
+		boolean b = task.update();
 		if (b) {
-			//得到当前任务的id
-			Record task = findOneTask(name);
-			Object taskId = task.get("id");
-			System.out.println("当前任务----"+task);
-			String[]  newExecutor= predecessorTasks.split(",");
-			//遍历添加前置任务
-			for (String taskRelation : newExecutor) {
-				Result result = addTaskRelation(Integer.parseInt(taskRelation),(int) taskId);
-				System.out.println("----添加前置任务---"+result.getData()) ;
-				
+			if (taskR!=null&&!"".equals(taskR)) {
+				String[]  newTaskR= taskR.split(",");
+				//遍历添加前置任务
+				for (String taskRelation : newTaskR) {
+					Integer newId = BaseMethodService.handleParameterType(taskRelation);
+					if (newId!=null) {
+						addTaskRelation(newId,id);
+					}
+				}
 			}
 			//遍历添加人员任务
-			String[] newPredecessorTasks = executor.split(",");
-			for (String personnel : newPredecessorTasks) {
-				Result result = addPersonnelTask((int) taskId, Integer.parseInt(personnel));
-				System.out.println("----添加人员任务---"+result.getData()) ;
+			if (executor!=null&&!"".equals(executor)) {
+				String[] newPredecessorTasks = executor.split(",");
+				for (String personnel : newPredecessorTasks) {
+					Integer newId = BaseMethodService.handleParameterType(personnel);
+					if (newId!=null) {
+						addPersonnelTask(id, newId);
+					}
+				}
 			}
-			return new Result(200, "添加任务所有信息成功");
-		}else {
-			return new Result(400, "添加任务所有信息失败");
 		}
-	}
+		return new Result(200, "修改任务信息成功");
 	
+	}
 	
 	
 	/**
@@ -268,13 +280,13 @@ public class TaskService{
 		for (int i = 0; i < taskRelations.size(); i++) {
 			Record record = taskRelations.get(i);
 			//有值就执行删除方法
-			record .set("is_delete", IsDelete.IS_DELETE_OFF);
+			record .set("is_delete", DeleteStatus.IS_DELETE_OFF);
 			b = Db.update("task_relation", record);
 		}
 		if (b) {
 			return new Result(200, "删除成功");
 		}else {
-			throw new RuntimeException("未知异常");
+			return new Result(400, "删除失败");
 		}
 		
 	}
@@ -294,13 +306,13 @@ public class TaskService{
 		for (int i = 0; i < personnelTasks.size(); i++) {
 			Record record = personnelTasks.get(i);
 			//有值就执行删除方法
-			record .set("is_delete", IsDelete.IS_DELETE_OFF);
+			record .set("is_delete", DeleteStatus.IS_DELETE_OFF);
 			b = Db.update("personnel_task", record);
 		}
 		if (b) {
 			return new Result(200, "删除成功");
 		}else {
-			throw new RuntimeException("未知异常");
+			return new Result(400, "删除失败");
 		}
 		
 	}
@@ -312,26 +324,26 @@ public class TaskService{
 	 * @param current_task     当前任务id（任务外键）
 	 * @return  返回信息提示用户
 	 */
-	public Result addTaskRelation(int predecessor_task,int current_task) {
-		System.out.println("业务层predecessor_task："+predecessor_task+",current_task："+current_task);
-		List<Record> taskRelations = Db.find("SELECT * FROM task_relation WHERE is_delete <1 AND current_task = "+current_task);
+	public Result addTaskRelation(int predecessorTaskId,int currentTask) {
+		List<Record> taskRelations = Db.find("SELECT * FROM task_relation WHERE is_delete <1 AND current_task = "+currentTask);
 		if (taskRelations.size()>0) {
 			for (int i = 0; i < taskRelations.size(); i++) {
-				Object findPredecessor_task = taskRelations.get(i).get("predecessor_task");
+				Object findPredecessorTask = taskRelations.get(i).get("predecessor_task");
 				//当查询出来的前置任务id是空，转为0
-				if (findPredecessor_task ==null) {
-					predecessor_task = 0;
+				if (findPredecessorTask ==null) {
+					predecessorTaskId = 0;
 				}
-				boolean b = findPredecessor_task.equals(predecessor_task);
+				boolean b = findPredecessorTask.equals(predecessorTaskId);
 				if (b) {
 					return new Result(400, "存在该该前置任务");
 				}
 			}
 		}
-		Record record = new Record();
-		record.set("predecessor_task", predecessor_task).set("current_task", current_task);
-		record.set("is_delete", IsDelete.IS_DELETE_ON);
-		boolean b = Db.save("task_relation" , record  );
+		TaskRelation taskRelation = new TaskRelation();
+		taskRelation.setPredecessorTask(predecessorTaskId);
+		taskRelation.setCurrentTask(currentTask);
+		taskRelation.setIsDelete(DeleteStatus.IS_DELETE_ON);
+		boolean b = taskRelation.save();
 		if (b) {
 			return new Result(200, "添加成功");
 		}else {
@@ -348,26 +360,20 @@ public class TaskService{
 	 * @param current_task     当前任务id（任务外键）
 	 * @return  返回信息提示用户
 	 */
-	public Result updateTaskRelation(int current_task) {
-		System.out.println("业务层current_task："+current_task);
+	public Result updateTaskRelation(int currentTask) {
 		Result result = new Result(400, "修改前置任务失败");
-		List<Record> taskRelations = Db.find("SELECT * FROM task_relation WHERE is_delete <1 AND current_task = "+current_task);
+		List<Record> taskRelations = Db.find("SELECT * FROM task_relation WHERE is_delete <1 AND current_task = "+currentTask);
 		if (taskRelations.size()>0) {
-			for (int i = 0; i < taskRelations.size(); i++) {
-				Record record = taskRelations.get(i);
-				
-				record.set("is_delete", IsDelete.IS_DELETE_OFF);
-				boolean b = Db.update("task_relation",record);
-				if (b) {
-					System.out.println();
-					result = new Result(200, "修改前置任务成功");
+				for (Record record : taskRelations) {
+					record.set("is_delete", DeleteStatus.IS_DELETE_OFF);
+					boolean b = Db.update("task_relation",record);
+					if (b) {
+						result = new Result(200, "修改前置任务成功");
+					}
 				}
-			}
+			
 		}
 		return result;
-		
-		
-		
 	}
 	
 	
@@ -378,7 +384,6 @@ public class TaskService{
 	 * @return   返回信息提示用户
 	 */
 	public Result addPersonnelTask(int task,int personnel) {
-		System.out.println("业务层task："+task+",personnel："+personnel);
 		List<Record> personnelTasks = Db.find("SELECT * FROM personnel_task WHERE is_delete < 1 AND task = "+task);
 		if (personnelTasks.size()>0) {
 			for (int i = 0; i < personnelTasks.size(); i++) {
@@ -388,14 +393,15 @@ public class TaskService{
 				}
 			}
 		}
-		Record record = new Record();
-		record.set("task", task).set("personnel", personnel);
-		record.set("is_delete", IsDelete.IS_DELETE_ON);
-		boolean b = Db.save("personnel_task" , record);
+		PersonnelTask personnelTask = new PersonnelTask();
+		personnelTask.setTask(task);
+		personnelTask.setPersonnel(personnel);
+		personnelTask.setIsDelete(DeleteStatus.IS_DELETE_ON);
+		boolean b = personnelTask.save();
 		if (b) {
 			return new Result(200, "添加成功");
 		}else {
-			return new Result(400, "失败成功");
+			return new Result(400, "添加失败");
 		}
 		
 	}
@@ -408,24 +414,21 @@ public class TaskService{
 	 * @return   返回信息提示用户
 	 */
 	public Result updatePersonnelTask(int task) {
-		System.out.println("业务层task："+task);
 		Result result = new Result(400, "修改人员任务失败");
 		List<Record> personnelTasks = Db.find("SELECT * FROM personnel_task WHERE is_delete < 1 AND task = "+task);
 		if (personnelTasks.size()>0) {
 			for (int i = 0; i < personnelTasks.size(); i++) {
 				Record record = personnelTasks.get(i);
-				record.set("is_delete", IsDelete.IS_DELETE_OFF);
+				record.set("is_delete", DeleteStatus.IS_DELETE_OFF);
 				boolean b = Db.update("personnel_task" , record);
 				if (b) {
 					result = new Result(200, "修改人员任务成功");
 				}
-				
 			}
 		}
 		return result;
 		
 	}
-	
 	
 	
 	/**
@@ -435,75 +438,35 @@ public class TaskService{
 	 * @param front_plans_end_date 要添加任务计划结束时间
 	 * @return 返回布尔值判断
 	 */
-	public Result isDate(String name,int personnel,Date front_start_date,
-			Date front_plans_end_date,boolean is_coerce,Date actual_end_date,
-			int task_classify,int gantt,String remark,String predecessorTasks,String executor) {
+	public Result handleDateInfo(int personnel,Date frontStartDate,Date frontPlansEndEate,boolean isCoerce) {
 		//查询人员任务
 		List<Record> personnelTasks = Db.find("SELECT * FROM personnel_task WHERE is_delete < 1 AND personnel = " +personnel);
 		//任务id
 		int taskId = 0;
 		//查询出的任务开始时间
-		Date start_date = null;
+		Date startDate = null;
 		//查询出的任务计划结束时间
-		Date plans_end_date = null;
-		//比较任务时间
-		boolean isTask = false;
-		//是否强制添加任务判定值
-		boolean code = false;
+		Date plansEndDate = null;
+		//时间判断值
+		boolean dateCode = false;
 		for (int i = 0; i < personnelTasks.size(); i++) {
 			taskId = personnelTasks.get(i).get("task");
 			//查询任务
 			List<Record> tasks = Db.find("SELECT id,start_date,plans_end_date from task WHERE is_delete < 1 AND id = "+taskId);
 			for (Record task : tasks) {
-				start_date = task.get("start_date");
-				plans_end_date = task.get("plans_end_date");
-				
-				System.out.println("要添加的任务的开始时间"+front_start_date);
-				System.out.println("要添加的任务的计划结束时间"+front_plans_end_date);
-				System.out.println("当前查询的任务的开始时间"+start_date);
-				System.out.println("当前查询的任务的计划结束时间"+plans_end_date);
-				
-				//要添加的任务的开始时间大于等于当前查询出的任务的结束时间？
-				System.out.println("---1->"+front_start_date.compareTo(start_date));
-				
-				if (front_start_date.compareTo(start_date)<0) {
-					System.out.println("要添加的任务的开始时间小于当前查询出的任务的结束时间");
-					//判断添加的任务的结束时间大于等于当前查询出的任务的开始时间？
-					System.out.println("---2->"+front_plans_end_date.compareTo(plans_end_date));
-					if(front_plans_end_date.compareTo(plans_end_date)>=0) {
-						System.out.println("判断添加的任务的结束时间大于等于当前查询出的任务的开始时间");
-						isTask = true;
-						code = true;
-					}else {
-						code = false;
-						
+				startDate = task.get("start_date");
+				plansEndDate = task.get("plans_end_date");
+				//调用判断时间方法
+				dateCode = compareDate(frontStartDate, frontPlansEndEate, startDate, plansEndDate);
+				if (dateCode==false) {
+					if (dateCode==isCoerce) {
+						return new Result(210,"时间冲突！");
 					}
-				}else {
-					System.out.println("--------is_coerce = true-");
-					code = true;
-					if (code) {
-						//判断是否强制添加任务
-						if (is_coerce) {
-							isTask = true;
-						}else {
-							return new Result(400, "是否强制添加任务");
-						}
-					}
-					
 				}
-				
 			}
-			
 		}
-		if (isTask) {
-			System.out.println("----isTask---true");
-			return new Result(200,"查询出人员任务表不为空时处理已完成！");
-		}
-		return new Result(200,"添加完成");
+		return new Result(200,"操作成功");
 	}
-	
-	
-	
 	
 	
 	/**
@@ -515,6 +478,71 @@ public class TaskService{
 		Record task = Db.findFirst("SELECT id,name FROM task WHERE is_delete <1 AND name ='"+name+"'");
 		return task;
 	}
+	
+	
+	/*
+	 * 判断前端要修改的任务信息
+	 */
+	private Task handleTaskInfo(int id,String name,Date startDate,Date plansEndDate,
+			Date actualEndDate,int taskClassify,int gantt,String remark) {
+		Task task = new Task();
+		if (id>0) {
+			task = Task.dao.findById(id);
+		}
+		if (id>0) {
+			task.setId(id);
+		}
+		if (name!=null&&!"".equals(name)) {
+			task.setName(name);
+		}
+		if (startDate!=null) {
+			task.setStartDate(startDate);
+		}
+		if (plansEndDate!=null) {
+			task.setPlansEndDate(plansEndDate);
+		}
+		if (actualEndDate!=null) {
+			task.setActualEndDate(actualEndDate);
+		}
+		if (taskClassify>0) {
+			task.setTaskClassify(taskClassify);
+		}
+		if (gantt>0) {
+			task.setGantt(gantt);
+		}
+		if (remark!=null&&!"".equals(remark)) {
+			task.setRemark(remark);
+		}
+		task.setIsDelete(DeleteStatus.IS_DELETE_ON);
+		return task;
+	}
+	
+	
+	/**
+	 * 将时间进行判断是否冲突
+	 * @param frontStartDate   添加的任务的开始时间
+	 * @param frontPlansEndEate添加的任务的结束时间
+	 * @param startDate        查询的任务的开始时间
+	 * @param plansEndDate     查询的任务的结束时间
+	 * @return
+	 */
+	private boolean compareDate(Date frontStartDate,Date frontPlansEndEate,Date startDate,Date plansEndDate) {
+		//判断添加的开始时间大于等于查询的结束时间
+		//或
+		//判断添加的任务的结束时间大于等于查询的任务的开始时间
+		if (frontStartDate.compareTo(plansEndDate)>=0||frontPlansEndEate.compareTo(startDate)<=0) {
+//			System.out.println("--右边-->"+frontStartDate.compareTo(plansEndDate));
+//			System.out.println("--左边-->"+frontPlansEndEate.compareTo(startDate));
+//			System.out.println("添加的开始时间大于等于查询的结束时间就表示");
+//			System.out.println("添加任务在查询的任务的右边");
+//			System.out.println("添加的结束时间小于等于查询的开始时间就表示");
+//			System.out.println("添加任务在查询的任务的左边");
+//			System.out.println("-判断时间方法-返回值--true");
+			return true;
+		}
+		return false;
+	}
+		
 
 	
 }

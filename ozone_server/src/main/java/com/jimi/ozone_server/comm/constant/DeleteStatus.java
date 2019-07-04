@@ -6,7 +6,7 @@ package com.jimi.ozone_server.comm.constant;
  * @author 几米物联自动化部-韦姚忠
  *
  */
-public class IsDelete {
+public class DeleteStatus {
 	
 	public static final int IS_DELETE_ON = 0;
 	

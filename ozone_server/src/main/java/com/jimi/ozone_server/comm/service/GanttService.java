@@ -5,7 +5,8 @@ import java.util.List;
 
 import com.jfinal.plugin.activerecord.Db;
 import com.jfinal.plugin.activerecord.Record;
-import com.jimi.ozone_server.comm.constant.IsDelete;
+import com.jimi.ozone_server.comm.constant.DeleteStatus;
+import com.jimi.ozone_server.comm.model.Gantt;
 import com.jimi.ozone_server.comm.model.Result;
 import com.jimi.ozone_server.comm.service.base.BaseMethodService;
 
@@ -16,10 +17,14 @@ import com.jimi.ozone_server.comm.service.base.BaseMethodService;
  * @author 几米物联自动化部-韦姚忠
  *
  */
+
 public class GanttService {
 	
-	/*
+	
+	/**
 	 * 甘特图显示
+	 * @param id 甘特图id
+	 * @return 返回甘特图的所有信息
 	 */
 	public Result findPojoGantt(int id) {
 		String ganttSql = "SELECT id,name,responsible,cycle,remark FROM gantt WHERE is_delete <1 AND id ="+id;
@@ -27,8 +32,8 @@ public class GanttService {
 		Record gantt = gantts.get(0);
 		String taskClassifySql  = "SELECT id,name FROM task_classify WHERE is_delete <1 AND gantt ="+id;
 		List<Record> personnels = new ArrayList<>();
-		//前置任务id
-		String taskRelas = "";
+		//前置任务id集合
+		List<String>  taskRelas = new ArrayList<>();
 		//任务分类集合
 		List<Record> taskClassifys = Db.find(taskClassifySql);
 		for (int i = 0; i < taskClassifys.size(); i++) {
@@ -46,37 +51,29 @@ public class GanttService {
 					//得到人员id
 					int personnelId = personnelTask.get("id");
 					 //查询人员
-					 List<Record> personnel = Db.find("SELECT id,name FROM personnel WHERE  is_delete<1 AND id ="+personnelId);
-					 System.out.println("业务层查询人员："+personnel);
-					 if (personnel.size()>0) {
-						 personnels.add(personnel.get(0));
-						 System.out.println("1.人员集合："+personnels);
+					 Record personnel = Db.findFirst("SELECT id,name FROM personnel WHERE  is_delete<1 AND id ="+personnelId);
+					 if (personnel!=null) {
+						 personnels.add(personnel);
 					}
 					
 				}
+				
 				for (Record taskRelation : taskRelations) {
-					String predecessor_task = taskRelation.getStr("predecessor_task");
-					if (predecessor_task == null) {
-						taskRelas = "0";
-					}else {
-						taskRelas = predecessor_task;
+					String predecessorTaskId = taskRelation.getStr("predecessor_task");
+					if (predecessorTaskId == null) {
+						predecessorTaskId = "0";
 					}
-					taskRelas = taskRelas+",";
+					taskRelas.add(predecessorTaskId);
 				}
 				task.set("personnels",personnels);
 				task.set("taskRelas", taskRelas);
-				System.out.println("2.人员集合："+personnels);
-				System.out.println("任务："+task);
 				personnels = new ArrayList<>();
-				taskRelas = "";
-			
+				taskRelas = new ArrayList<>();
 			}
 			//添加完第一个任务分类、前置任务之后清空
 			taskClassify.set("tasks", tasks);
-			
 		}
 		gantt.set("taskClassifys", taskClassifys);
-		
 		return new Result(200, gantt);
 		
 		
@@ -89,12 +86,10 @@ public class GanttService {
 	 * @return  返回信息提示用户
 	 */
 	public Result deleteGantt(int id) {
-		System.out.println("业务层id："+id);
 		String sql = "SELECT id FROM gantt WHERE is_delete <1 AND id = "+id;
 		String tableName = "gantt";
 		//调用公共删除方法
 		Result result = BaseMethodService.deleteTableRecord(tableName, sql);
-		System.out.println("业务层返回值："+result.getCode()+",信息: " +result.getData()) ;
 		return result;
 	}
 	
@@ -105,7 +100,6 @@ public class GanttService {
 	 * @return	    返回集合数据显示
 	 */
 	public Result findAllGantt(String name) {
-		System.out.println("业务层参数--name：" + name);
 		List<Record> gantts = null;
 		// 判断name不为空
 		if (!"".equals(name) && name != null) {
@@ -114,7 +108,6 @@ public class GanttService {
 		} else {
 			gantts = Db.find("SELECT id,name,responsible,cycle,remark FROM gantt WHERE is_delete <1");
 		}
-		System.out.println("业务层集合--gantt：" + gantts);
 		return new Result(200, gantts);
 		
 	}
@@ -129,20 +122,16 @@ public class GanttService {
 	 * @return   返回字符串信息提示用户
 	 */
 	public Result addGantt(String name,String responsible,int cycle,String remark) {
-		System.out.println("业务层参数--name：" + name+",responsoble"+responsible+", cycle"+cycle+",remark"+remark);
 		if (name!=null&&!"".equals(name)&&responsible!=null&&!"".equals(responsible)&&cycle>0) {
-			List<Record> gantts = Db.find("SELECT id,name FROM gantt WHERE is_delete <1 AND name LIKE '%"+name+"%'");
+			List<Record> gantts = Db.find("SELECT id,name FROM gantt WHERE is_delete <1 AND name = '"+name+"'");
 			if (gantts.size()>0) {
 				return new Result(400, "甘特图已存在！");
 			}
-			Record record = new Record();
-			record.set("name", name).set("responsible", responsible).set("cycle", cycle).set("remark", remark);
-			record.set("is_delete", IsDelete.IS_DELETE_ON);
-			boolean b = Db.save("gantt", record );
+			Gantt gantt = handleGanttInfo(0, name, responsible, cycle, remark);
+			boolean b = gantt.save();
 			if (b) {
 				return new Result(200, "添加成功");
 			}
-			
 		}else {
 			return new Result(400, "信息有误！");
 		}
@@ -161,22 +150,48 @@ public class GanttService {
 	 * @return   返回字符串信息提示用户
 	 */
 	public Result updateGantt(int id,String name,String responsible,int cycle,String remark) {
-		System.out.println("业务层参数--id："+id+",name：" + name+",responsoble"+responsible+", cycle"+cycle+",remark"+remark);
-		List<Record> gantts = Db.find("SELECT id FROM gantt WHERE is_delete <1 AND id ="+id);
-		if (gantts.size()<=0) {
+		Record ganttById = Db.findFirst("SELECT id FROM gantt WHERE is_delete <1 AND id ="+id);
+		if (ganttById==null) {
 			return new Result(400, "甘特图不存在！");
 		}
-		if (name!=null&&!"".equals(name)&&responsible!=null&&!"".equals(responsible)&&cycle>0) {
-			Record record = new Record();
-			record.set("id", id).set("name", name).set("responsible", responsible).set("cycle", cycle).set("remark", remark);
-			record.set("is_delete", IsDelete.IS_DELETE_ON);
-			boolean b = Db.update("gantt", record );
-			if (b) {
-				return new Result(200, "修改成功");
+		if (name!=null&&!"".equals(name)) {
+			Record ganttByName = Db.findFirst("SELECT id,name FROM gantt WHERE is_delete <1 AND name = ?",name);
+			if (ganttByName!=null) {
+				return new Result(400, "甘特图名字重复");
 			}
 		}
-		return new Result(200, "修改失败");
+		Gantt gantt = handleGanttInfo(id, name, responsible, cycle, remark);
+		boolean b = gantt.update();
+		if (b) {
+			return new Result(200, "修改成功");
+		}
+		return new Result(400, "修改失败");
 		
+	}
+	
+	
+	/*
+	 * 判断控制器传回的值
+	 */
+	private Gantt handleGanttInfo(int id,String name,String responsible,int cycle,String remark) {
+		Gantt gantt = new Gantt();
+		if (id>0) {
+			gantt = Gantt.dao.findById(id);
+		}
+		if (name!=null&&!"".equals(name)) {
+			gantt.setName(name);
+		}
+		if (responsible!=null&&!"".equals(responsible)) {
+			gantt.setResponsible(responsible);
+		}
+		if (cycle>0) {
+			gantt.setCycle(cycle);
+		}
+		if (remark!=null&&!"".equals(remark)) {
+			gantt.setRemark(remark);
+		}
+		gantt.setIsDelete(DeleteStatus.IS_DELETE_ON);
+		return gantt;
 	}
 	
 

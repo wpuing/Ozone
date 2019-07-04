@@ -1,7 +1,5 @@
 package com.jimi.ozone_server.comm.model;
 
-import java.util.List;
-
 import com.jimi.ozone_server.comm.model.base.BaseTaskClassify;
 
 /**
@@ -15,19 +13,6 @@ import com.jimi.ozone_server.comm.model.base.BaseTaskClassify;
 public class TaskClassify extends BaseTaskClassify<TaskClassify> {
 	
 	public static final TaskClassify dao = new TaskClassify().dao();
-	
-	private List<Task>  tasks;
-	
-	public List<Task> getTasks() {
-		return tasks;
-	}
-	public void setTasks(List<Task> tasks) {
-		this.tasks = tasks;
-	}
-	@Override
-	public String toString() {
-		return "TaskClassify [tasks=" + tasks + "]";
-	}
 	
 	
 }

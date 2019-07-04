@@ -20,6 +20,7 @@ import com.jimi.ozone_server.comm.controller.PersonnelController;
 import com.jimi.ozone_server.comm.controller.TaskClassifyController;
 import com.jimi.ozone_server.comm.controller.TaskController;
 import com.jimi.ozone_server.comm.exception.ExceptionIntoLogInterceptor;
+import com.jimi.ozone_server.comm.model.MysqlMappingKit;
 
 public class OzoneServerConfig extends JFinalConfig{
 	
@@ -58,6 +59,7 @@ public class OzoneServerConfig extends JFinalConfig{
 		DruidPlugin	dp = new DruidPlugin(prop.get("w_url"), prop.get("w_user"), prop.get("w_password"));
 		me.add(dp);
 		ActiveRecordPlugin arp = new ActiveRecordPlugin(dp);
+		MysqlMappingKit.mapping(arp);
 		me.add(arp);
 	}
 

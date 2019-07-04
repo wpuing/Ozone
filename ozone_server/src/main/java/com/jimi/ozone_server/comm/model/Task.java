@@ -1,7 +1,5 @@
 package com.jimi.ozone_server.comm.model;
 
-import java.util.List;
-
 import com.jimi.ozone_server.comm.model.base.BaseTask;
 
 /**
@@ -15,32 +13,6 @@ import com.jimi.ozone_server.comm.model.base.BaseTask;
 public class Task extends BaseTask<Task> {
 	
 	public static final Task dao = new Task().dao();
-	
-	private List<TaskRelation> taskRelations;
-	
-	private List<PersonnelTask> personnelTasks;
-
-	public List<TaskRelation> getTaskRelations() {
-		return taskRelations;
-	}
-
-	public void setTaskRelations(List<TaskRelation> taskRelations) {
-		this.taskRelations = taskRelations;
-	}
-
-	public List<PersonnelTask> getPersonnelTasks() {
-		return personnelTasks;
-	}
-
-	public void setPersonnelTasks(List<PersonnelTask> personnelTasks) {
-		this.personnelTasks = personnelTasks;
-	}
-
-	@Override
-	public String toString() {
-		return "Task [taskRelations=" + taskRelations + ", personnelTasks=" + personnelTasks + "]";
-	}
-	
 	
 	
 }

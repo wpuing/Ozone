@@ -6,7 +6,7 @@ import java.util.List;
 
 import com.jfinal.plugin.activerecord.Db;
 import com.jfinal.plugin.activerecord.Record;
-import com.jimi.ozone_server.comm.constant.IsDelete;
+import com.jimi.ozone_server.comm.constant.DeleteStatus;
 import com.jimi.ozone_server.comm.model.Result;
 
 /**
@@ -29,13 +29,12 @@ public class BaseMethodService {
 		boolean b = false;
 		//通过id查询出该人员分类的实体
 		List<Record> personnelClassify = Db.find(sql);
-		System.out.println(personnelClassify);
 		//判断是否有值
 		if (personnelClassify.size()>0) {
 			//取出实体
 			Record record = personnelClassify.get(0);
 			//有值就执行删除方法
-			record .set("is_delete", IsDelete.IS_DELETE_OFF);
+			record .set("is_delete", DeleteStatus.IS_DELETE_OFF);
 			b = Db.update(tableName, record);
 			if (b) {
 				return new Result(200, "删除成功");
@@ -62,12 +61,13 @@ public class BaseMethodService {
 		return number_list;
 	}
 	
+	
 	/**
 	 * 判断遍历得到的id类型是否正确
 	 * @param id 传入的id
 	 * @return 信息提示
 	 */
-	public static Integer isParameterType(String id) {
+	public static Integer handleParameterType(String id) {
 		Integer newId = null;
 		try {
 			newId = Integer.parseInt(id);

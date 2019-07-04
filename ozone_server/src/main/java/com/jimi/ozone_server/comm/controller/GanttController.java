@@ -28,6 +28,7 @@ public class GanttController extends Controller {
 		
 	}
 	
+	
 	/*
 	 * 查询甘特图
 	 */
@@ -36,7 +37,6 @@ public class GanttController extends Controller {
 		System.out.println("控制器name："+name);
 		Result result = ganttService.findAllGantt(name);
 		renderJson(result);
-		
 	}
 	
 	
@@ -48,7 +48,7 @@ public class GanttController extends Controller {
 		String ids = getPara("ids");
 		String[] newNumbers = ids.split(",");
 		for (String idStr : newNumbers) {
-			Integer newId = BaseMethodService.isParameterType(idStr);
+			Integer newId = BaseMethodService.handleParameterType(idStr);
 			if (newId!=null) {
 				result = ganttService.deleteGantt(newId);
 			}
@@ -67,16 +67,12 @@ public class GanttController extends Controller {
 		String cycleStr = getPara("cycle");
 		int cycle = 0;
 		if (cycleStr!=null) {
-			Integer newCycle =BaseMethodService.isParameterType(cycleStr);
+			Integer newCycle =BaseMethodService.handleParameterType(cycleStr);
 			if (newCycle!=null) {
 				cycle = newCycle;
 			}
 		}
 		String remark = getPara("remark");
-		System.out.println("控制器responsible："+responsible);
-		System.out.println("控制器name："+name);
-		System.out.println("控制器cycle："+cycleStr);
-		System.out.println("控制器remark："+remark);
 		Result result = ganttService.addGantt(name, responsible, cycle, remark);
 		renderJson(result);
 	}
@@ -89,7 +85,7 @@ public class GanttController extends Controller {
 		String idStr = getPara("id");
 		int id = 0;
 		if (idStr!=null) {
-			Integer newId =BaseMethodService.isParameterType(idStr);
+			Integer newId =BaseMethodService.handleParameterType(idStr);
 			if (newId!=null) {
 				id = newId;
 			}
@@ -99,16 +95,12 @@ public class GanttController extends Controller {
 		String cycleStr = getPara("cycle");
 		int cycle = 0;
 		if (cycleStr!=null) {
-			Integer newCycle =BaseMethodService.isParameterType(cycleStr);
+			Integer newCycle =BaseMethodService.handleParameterType(cycleStr);
 			if (newCycle!=null) {
 				cycle = newCycle;
 			}
 		}
 		String remark = getPara("remark");
-		System.out.println("控制器responsible："+responsible);
-		System.out.println("控制器name："+name);
-		System.out.println("控制器cycle："+cycleStr);
-		System.out.println("控制器remark："+remark);
 		Result result = ganttService.updateGantt(id, name, responsible, cycle, remark);
 		renderJson(result);
 	}

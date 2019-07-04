@@ -30,9 +30,7 @@ public class PersonnelClassifyController extends Controller {
 	 */
 	public void findPerClsAll() {
 		String name = getPara("name");
-		System.out.println("控制器层参数--name：" + name);
 		Result personnelClassifys = personnelClassifyService.getPersonnelClassifys(name);
-		System.out.println("控制器层集合--pcs：" + personnelClassifys);
 		renderJson(personnelClassifys);
 	}
 
@@ -42,9 +40,8 @@ public class PersonnelClassifyController extends Controller {
 	 */
 	public void addClassify() {
 		String name = getPara("name");
-		String remark = getPara("remark", "");
+		String remark = getPara("remark");
 		Result result = personnelClassifyService.addPersonnelClassify(name, remark);
-		System.out.println("是否添加成功？--->" + result);
 		renderJson(result);
 	}
 	
@@ -57,7 +54,6 @@ public class PersonnelClassifyController extends Controller {
 		String name = getPara("name");
 		String remark = getPara("remark");
 		Result result = personnelClassifyService.findPersonnelClassifyByName(id, name, remark);
-		System.out.println("返回值：" + result);
 		renderJson(result);
 		
 	}
@@ -72,7 +68,7 @@ public class PersonnelClassifyController extends Controller {
 		String ids = getPara("ids");
 		String[] newNumbers = ids.split(",");
 		for (String idStr : newNumbers) {
-			Integer newId = BaseMethodService.isParameterType(idStr);
+			Integer newId = BaseMethodService.handleParameterType(idStr);
 			if (newId!=null) {
 				id=newId;
 				result = personnelClassifyService.deletePersonnelClassify(id);
@@ -80,13 +76,5 @@ public class PersonnelClassifyController extends Controller {
 		}
 		renderJson(result);
 		
-//		String id_str = getPara("ids");
-//		String[] ids = id_str.split(",");
-//		Result result = null;
-//		for (String id : ids) {
-//			result = personnelClassifyService.deletePersonnelClassify(Integer.parseInt(id));
-//			System.out.println("控制层返回值："+result.getCode()+",信息: " +result.getData()) ;
-//		}
-//		renderJson(result);
 	}
 }
