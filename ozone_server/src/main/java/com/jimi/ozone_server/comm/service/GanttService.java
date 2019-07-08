@@ -9,11 +9,11 @@ import com.jimi.ozone_server.comm.constant.DeleteStatus;
 import com.jimi.ozone_server.comm.model.Gantt;
 import com.jimi.ozone_server.comm.model.Result;
 import com.jimi.ozone_server.comm.service.base.BaseMethodService;
+import com.jimi.ozone_server.comm.service.base.SQL;
 
 /**
  * 甘特图管理业务类 <br>
  * <b>2019年6月21日</b>
- * 
  * @author 几米物联自动化部-韦姚忠
  *
  */
@@ -27,10 +27,10 @@ public class GanttService {
 	 * @return 返回甘特图的所有信息
 	 */
 	public Result findPojoGantt(int id) {
-		String ganttSql = "SELECT id,name,responsible,cycle,remark FROM gantt WHERE is_delete <1 AND id ="+id;
+		String ganttSql = SQL.FIND_GANTT_BY_ID+id;
 		List<Record> gantts = Db.find(ganttSql);
 		Record gantt = gantts.get(0);
-		String taskClassifySql  = "SELECT id,name FROM task_classify WHERE is_delete <1 AND gantt ="+id;
+		String taskClassifySql  = SQL.FIND_TASK_CLASSIFY_BY_GANTT_ID+id;
 		List<Record> personnels = new ArrayList<>();
 		//前置任务id集合
 		List<String>  taskRelas = new ArrayList<>();
@@ -41,17 +41,17 @@ public class GanttService {
 			//任务分类id
 			int taskClassifyId = taskClassify.get("id");
 			//任务集合
-			List<Record> tasks = Db.find("SELECT id,name,start_date,plans_end_date,actual_end_date FROM task WHERE is_delete <1 AND task_classify ="+taskClassifyId);
+			List<Record> tasks = Db.find(SQL.FIND_TASK_BY_TASK_CLASSIFY_ID+taskClassifyId);
 			for (Record task : tasks) {
 				//任务id
 				int taskId = task.get("id");
-				List<Record> taskRelations = Db.find("SELECT id,predecessor_task,current_task FROM task_relation WHERE is_delete<1 AND current_task ="+taskId);
-				List<Record> personnelTasks = Db.find("SELECT id,personnel,task,remark FROM personnel_task WHERE is_delete<1 AND task =" +taskId);
+				List<Record> taskRelations = Db.find(SQL.FIND_TASK_RELATION_BY_CURRENT_TASK+taskId);
+				List<Record> personnelTasks = Db.find( SQL.FIND_PERSONNEL_TASK_BY_TASK_ID+taskId);
 				for (Record personnelTask : personnelTasks) {
 					//得到人员id
 					int personnelId = personnelTask.get("id");
 					 //查询人员
-					 Record personnel = Db.findFirst("SELECT id,name FROM personnel WHERE  is_delete<1 AND id ="+personnelId);
+					 Record personnel = Db.findFirst(SQL.FIND_PERSONNEL_BY_ID+personnelId);
 					 if (personnel!=null) {
 						 personnels.add(personnel);
 					}
@@ -86,7 +86,7 @@ public class GanttService {
 	 * @return  返回信息提示用户
 	 */
 	public Result deleteGantt(int id) {
-		String sql = "SELECT id FROM gantt WHERE is_delete <1 AND id = "+id;
+		String sql = SQL.FIND_GANTT_BY_ID+id;
 		String tableName = "gantt";
 		//调用公共删除方法
 		Result result = BaseMethodService.deleteTableRecord(tableName, sql);
@@ -106,7 +106,7 @@ public class GanttService {
 			// 带值查询
 			gantts = Db.find("SELECT id,name,responsible,cycle,remark FROM gantt WHERE is_delete <1 AND name LIKE '%"+name+"%'");
 		} else {
-			gantts = Db.find("SELECT id,name,responsible,cycle,remark FROM gantt WHERE is_delete <1");
+			gantts = Db.find(SQL.FIND_GANTT_ALL);
 		}
 		return new Result(200, gantts);
 		
@@ -150,7 +150,7 @@ public class GanttService {
 	 * @return   返回字符串信息提示用户
 	 */
 	public Result updateGantt(int id,String name,String responsible,int cycle,String remark) {
-		Record ganttById = Db.findFirst("SELECT id FROM gantt WHERE is_delete <1 AND id ="+id);
+		Record ganttById = Db.findFirst(SQL.FIND_GANTT_BY_ID+id);
 		if (ganttById==null) {
 			return new Result(400, "甘特图不存在！");
 		}

@@ -6,6 +6,7 @@ import java.util.List;
 import com.jfinal.plugin.activerecord.Db;
 import com.jfinal.plugin.activerecord.Record;
 import com.jimi.ozone_server.comm.model.Result;
+import com.jimi.ozone_server.comm.service.base.SQL;
 
 /**
  * 人力资源显示业务类 <br>
@@ -22,7 +23,7 @@ public class HRService {
 	 * @return 返回人力资源信息
 	 */
 	public Result findHrInfo() {
-		String personnelClassifySql = "SELECT id,name FROM personnel_classify WHERE is_delete < 1";
+		String personnelClassifySql = SQL.FIND_PERSONNEL_CLASSIFY_ALL;
 		List<Record> tasks  = new ArrayList<>();
 		List<Record> newPersonnels = new ArrayList<>();
 		List<Record> newPersonnelClassifys = new ArrayList<>();
@@ -31,21 +32,21 @@ public class HRService {
 		for (Record personnelClassify : personnelClassifys) {
 			int personnel_classify_id = personnelClassify.get("id");
 			//2.根据人员分类id查询该分类下的所有的人员
-			List<Record> personnels = Db.find("SELECT id,name FROM personnel WHERE is_delete < 1 AND personnel_classify  ="+personnel_classify_id);
+			List<Record> personnels = Db.find(SQL.FIND_PERSONEL_BY_PERSONNEL_CALSSIFY_ID+personnel_classify_id);
 			for (Record personnel : personnels) {
 				int personnel_id = personnel.get("id");
 				//3.根据人员id查询当前人员的人员任务列表
-				List<Record> personnelTasks = Db.find("SELECT id,personnel,task FROM personnel_task WHERE is_delete < 1 AND personnel ="+personnel_id);
+				List<Record> personnelTasks = Db.find(SQL.FIND_PERSONNEL_CALSSIFY_BY_PERSONNEL_ID+personnel_id);
 				for (Record personnelTask : personnelTasks) {
 					int task_id = personnelTask.get("task");
 					//4.根据得到的人员任务列表的任务id得到该任务
-					List<Record> oneTasks = Db.find("SELECT id,name,gantt FROM task WHERE is_delete < 1 AND id = "+task_id);
+					List<Record> oneTasks = Db.find(SQL.FIND_TASK_BY_ID+task_id);
 					//得到该任务
 					if (oneTasks.size()>0) {
 						Record task = oneTasks.get(0);
 						int gantt_id = oneTasks.get(0).get("gantt");
 						//5.根据任务的甘特图外键得到甘特图信息
-						List<Record> gantts = Db.find("SELECT id,name FROM gantt WHERE is_delete <1 AND id = "+gantt_id);
+						List<Record> gantts = Db.find(SQL.FINAL_GANTT_HR_BY_ID+gantt_id);
 						Record gantt = gantts.get(0);
 						//将甘特图的信息放进任务里面
 						task.set("task_gantt", gantt);

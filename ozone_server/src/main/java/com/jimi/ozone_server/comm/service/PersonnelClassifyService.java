@@ -8,6 +8,7 @@ import com.jimi.ozone_server.comm.constant.DeleteStatus;
 import com.jimi.ozone_server.comm.model.PersonnelClassify;
 import com.jimi.ozone_server.comm.model.Result;
 import com.jimi.ozone_server.comm.service.base.BaseMethodService;
+import com.jimi.ozone_server.comm.service.base.SQL;
 
 
 
@@ -34,7 +35,7 @@ public class PersonnelClassifyService {
 			personnelClassifys = Db.find("SELECT id,name,remark FROM personnel_classify WHERE name LIKE '%" + name
 					+ "%' AND is_delete < 1");
 		} else {
-			personnelClassifys = Db.find("SELECT id,name,remark FROM personnel_classify WHERE  is_delete < 1");
+			personnelClassifys = Db.find(SQL.FIND_PER_CLASSIFY_ALL_IN_REMARK);
 		}
 		return new Result(200, personnelClassifys);
 	}
@@ -53,7 +54,7 @@ public class PersonnelClassifyService {
 		//判断非空
 		if (name!=null&&!"".equals(name)) {
 			//查询数据库
-			List<Record> findResults = Db.find("SELECT id FROM personnel_classify WHERE name ='" + name + "'");
+			List<Record> findResults = Db.find(SQL.FIND_PER_CLASSIFY_BY_NAME+"'" + name + "'");
 			//判断该人员分类是否存在
 			if (findResults.size() > 0) {
 				data = "存在该人员分类！";
@@ -82,7 +83,7 @@ public class PersonnelClassifyService {
 	 * @return 字符串提示用户
 	 */
 	public Result findPersonnelClassifyByName(int id,String name,String remark) {
-		List<Record> record = Db.find("SELECT id,name,remark FROM personnel_classify WHERE  is_delete < 1 AND id = "+id);
+		List<Record> record = Db.find(SQL.FIND_PER_CLASSIFY_BY_ID+id);
 		if (record.size()>0) {
 			PersonnelClassify personnelClassify = handlePersonnelClassifyInfo(id, name, remark);
 			boolean b = personnelClassify.update();
@@ -100,7 +101,7 @@ public class PersonnelClassifyService {
 	 * @return 提示用户
 	 */
 	public Result deletePersonnelClassify(int id) {
-		String sql = "SELECT id,name,remark FROM personnel_classify WHERE  is_delete < 1 AND id = "+id;
+		String sql = SQL.FIND_PER_CLASSIFY_BY_ID+id;
 		String tableName = "personnel_classify";
 		//调用公共删除方法
 		Result result = BaseMethodService.deleteTableRecord(tableName, sql);

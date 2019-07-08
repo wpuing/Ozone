@@ -8,6 +8,7 @@ import com.jimi.ozone_server.comm.constant.DeleteStatus;
 import com.jimi.ozone_server.comm.model.Personnel;
 import com.jimi.ozone_server.comm.model.Result;
 import com.jimi.ozone_server.comm.service.base.BaseMethodService;
+import com.jimi.ozone_server.comm.service.base.SQL;
 
 /**
  * 人员管理业务类
@@ -25,7 +26,7 @@ public class PersonnelService{
 	 * @return 提示用户
 	 */
 	public Result deletePersonnel(int id) {
-		String sql = "SELECT id,name FROM personnel WHERE is_delete < 1 AND id = "+id;
+		String sql = SQL.FIND_PERSONNEL_BY_ID+id;
 		String tableName = "personnel";
 		//调用公共删除方法
 		Result result = BaseMethodService.deleteTableRecord(tableName, sql);
@@ -43,9 +44,9 @@ public class PersonnelService{
 		// 判断name不为空
 		if (!"".equals(name) && name != null) {
 			// 带值查询
-			personnels = Db.find("SELECT p.id,p.name,p.personnel_classify,pc.name personnel_classify_name FROM personnel p LEFT JOIN personnel_classify pc ON  p.personnel_classify = pc.id  WHERE p.name LIKE \"%"+name+"%\" AND p.is_delete < 1;");
+			personnels = Db.find(SQL.FIND_ALL_PERSONNEL_LIKE_BY_JOIN_CLASSIFY_NAME+"'%"+name+"%'");
 		} else {
-			personnels = Db.find("SELECT p.id,p.name,p.personnel_classify,pc.name personnel_classify_name FROM personnel p LEFT JOIN personnel_classify pc ON  p.personnel_classify = pc.id  WHERE  p.is_delete < 1;");
+			personnels = Db.find(SQL.FIND_PERSONNEL_BY_JOIN_CLASSIFY);
 		}
 		return new Result(200, personnels);
 		
@@ -61,7 +62,7 @@ public class PersonnelService{
 	public Result addPersonnel(String name,int personnelClassify) {
 		//判断非空
 		if (name!=null &&!"".equals(name)) {
-			Record record = Db.findFirst("SELECT id,name FROM personnel WHERE name LIKE '"+name+"' and is_delete < 1");
+			Record record = Db.findFirst(SQL.FIND_PERSONNEL_BY_NAME+"'"+name+"'");
 			//查询是否存在该人员
 			if (record!=null) {
 				return new Result(400, "存在该人员！");
@@ -87,16 +88,16 @@ public class PersonnelService{
 	 * @return
 	 */
 	public Result updatePersonnel(int id,String name,int personnelClassifyId) {
-		Record record = Db.findFirst("SELECT id,name FROM personnel WHERE is_delete < 1 AND id = "+id);
+		Record record = Db.findFirst(SQL.FIND_PERSONNEL_BY_ID+id);
 		if (record==null) {
 			return new Result(400, "该人员不存在");
 		}
-		Record personnelClassify = Db.findFirst("SELECT id,name,remark FROM personnel_classify WHERE  is_delete < 1 AND id = "+personnelClassifyId);
+		Record personnelClassify = Db.findFirst(SQL.FIND_PERSONNEL_TASK_INFO_BY_TASK_ID+personnelClassifyId);
 		if (personnelClassify==null) {
 			return new Result(400, "该人员分类不存在");
 		}
 		if (name!=null &&!"".equals(name)) {
-			Record findRecord = Db.findFirst("SELECT id,name FROM personnel WHERE name LIKE '"+name+"' and is_delete < 1");
+			Record findRecord = Db.findFirst(SQL.FIND_ALL_PERSONNEL_LIKE_BY__NAME+"'"+name+"'");
 			if (findRecord!=null) {
 				return new Result(400, "存在");
 			}
