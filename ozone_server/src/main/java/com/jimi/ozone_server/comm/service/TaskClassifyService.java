@@ -29,6 +29,7 @@ public class TaskClassifyService{
 		String tableName = "task_classify";
 		//调用公共删除方法
 		Result result = BaseMethodService.deleteTableRecord(tableName, sql);
+		//返回
 		return result;
 	}
 	
