@@ -17,7 +17,7 @@ public class SQL {
 	public static final String FIND_TASK_CLASSIFY_BY_GANTT_ID="SELECT id,name FROM task_classify WHERE is_delete <1 AND gantt =";
 	
 	public static final String FIND_TASK_BY_TASK_CLASSIFY_ID = "SELECT id,name,start_date,plans_end_date,actual_end_date FROM task WHERE is_delete <1 AND task_classify =";
-	
+
 	public static final String FIND_TASK_RELATION_BY_CURRENT_TASK = "SELECT id,predecessor_task,current_task FROM task_relation WHERE is_delete<1 AND current_task =";
 
 	public static final String  FIND_PERSONNEL_TASK_BY_TASK_ID ="SELECT id,personnel,task,remark FROM personnel_task WHERE is_delete<1 AND task ="; 
@@ -61,4 +61,36 @@ public class SQL {
 
 	public static final String FIND_ALL_PERSONNEL_LIKE_BY__NAME = "SELECT id,name FROM personnel WHERE is_delete < 1 AND name = ";
 
+	/**
+	 * 任务分类SQL
+	 */
+	public static final String FIND_TASK_CLASSIFY_BY_ID = "SELECT id,name FROM task_classify WHERE is_delete < 1 AND id = ";
+	
+	public static final String FIND_TASK_CLASSIFY_BY_NAME_LIKE = "SELECT id,name,remark,gantt FROM task_classify WHERE is_delete <1 AND name LIKE ";
+	
+	public static final String FIND_TASK_CLASSIFY_BY_GANTT = "SELECT id,name,remark,gantt FROM task_classify WHERE is_delete <1  AND gantt =";
+	
+	public static final String FIND_TASK_CLASSIFY_ALL = "SELECT id,name,remark,gantt FROM task_classify WHERE  is_delete <1";
+	
+	public static final String FIND_TASK_CLASSIFY_BY_ID_REMARK = "SELECT id,name,remark,gantt FROM task_classify WHERE is_delete < 1 AND id = ";
+	
+	public static final String FIND_TASK_CLASSIFY_BY_NAME = "SELECT id,name,remark,gantt FROM task_classify WHERE  is_delete < 1 AND name = ";
+	
+	/**
+	 * 任务SQL
+	 */
+	public static final String FIND_TASK_ALL = "SELECT id,name,start_date,plans_end_date,actual_end_date,task_classify FROM task WHERE is_delete <1";
+	
+	public static final String FIND_TASK_BY_LIKE_NAME = "SELECT id,name,start_date,plans_end_date,actual_end_date,task_classify FROM task WHERE is_delete <1 AND name LIKE ";
+	
+	public static final String FIND_TASK_CLASSIFY_NAME_BY_ID = "SELECT name,remark FROM task_classify WHERE is_delete<1 AND id =";
+	
+	public static final String FIND_PERSONNEL_TASK_BY_TASK = "SELECT id,personnel,task,remark FROM personnel_task WHERE is_delete<1 AND task =";
+	
+	public static final String FIND_TASK_BY_NAME ="SELECT id,name FROM task WHERE is_delete < 1 AND name =";
+	
+	public static final String FIND_PERSONNEL_TASK_BY_PERSONNEL = "SELECT * FROM personnel_task WHERE is_delete < 1 AND personnel = ";
+	
+	public static final String FIND_TASK_BY_ID_ALL_INFO = "SELECT id,start_date,plans_end_date from task WHERE is_delete < 1 AND id = ";
+	
 }

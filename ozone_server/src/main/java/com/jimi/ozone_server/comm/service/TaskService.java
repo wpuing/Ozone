@@ -13,6 +13,7 @@ import com.jimi.ozone_server.comm.model.Result;
 import com.jimi.ozone_server.comm.model.Task;
 import com.jimi.ozone_server.comm.model.TaskRelation;
 import com.jimi.ozone_server.comm.service.base.BaseMethodService;
+import com.jimi.ozone_server.comm.service.base.SQL;
 
 /**
  * 任务管理业务类
@@ -30,7 +31,7 @@ public class TaskService{
 	 * @return 提示用户
 	 */
 	public Result deleteTask(int id) {
-		String sql = "SELECT id,name FROM task WHERE is_delete < 1 AND id = "+id;
+		String sql = SQL.FIND_TASK_BY_ID+id;
 		String tableName = "task";
 		//调用公共删除方法
 		Result result = BaseMethodService.deleteTableRecord(tableName, sql);
@@ -48,8 +49,8 @@ public class TaskService{
 	 * @return    返回信息提示用户
 	 */
 	public Result findAllTask(String name) {
-		String noValueSql = "SELECT id,name,start_date,plans_end_date,actual_end_date,task_classify FROM task WHERE is_delete <1";
-		String  valueSql= "SELECT id,name,start_date,plans_end_date,actual_end_date,task_classify FROM task WHERE is_delete <1 AND name LIKE '%"+name+"%'";
+		String noValueSql = SQL.FIND_TASK_ALL;
+		String  valueSql= SQL.FIND_TASK_BY_LIKE_NAME+"'%"+name+"%'";
 		List<Record> personnels = null;
 		// 判断name不为空
 		if (!"".equals(name) && name != null) {
@@ -63,9 +64,9 @@ public class TaskService{
 			Record record = personnels.get(i);
 			int taskId = record.get("id");
 			int taskClassifyId = record.get("task_classify");
-			List<Record> taskClassifys = Db.find("SELECT name,remark FROM task_classify WHERE is_delete<1 AND id ="+taskClassifyId);
-			List<Record> taskRelations = Db.find("SELECT id,predecessor_task,current_task FROM task_relation WHERE is_delete<1 AND current_task ="+taskId);
-			List<Record> personnelTasks = Db.find("SELECT id,personnel,task,remark FROM personnel_task WHERE is_delete<1 AND task ="+taskId);
+			List<Record> taskClassifys = Db.find(SQL.FIND_TASK_CLASSIFY_NAME_BY_ID+taskClassifyId);
+			List<Record> taskRelations = Db.find(SQL.FIND_TASK_RELATION_BY_CURRENT_TASK+taskId);
+			List<Record> personnelTasks = Db.find(SQL.FIND_PERSONNEL_TASK_BY_TASK+taskId);
 			if (taskClassifys.size()>0) {
 				record.set("task_classify_name", taskClassifys.get(0).get("name"));
 			}else {
@@ -100,7 +101,7 @@ public class TaskService{
 			return new Result(400, "数据不完整");
 		}
 		
-		List<Record> tasks = Db.find("SELECT * from task WHERE is_delete < 1 AND name ='"+name+"'");
+		List<Record> tasks = Db.find(SQL.FIND_TASK_BY_NAME+"'"+name+"'");
 		if (tasks.size()>0) {
 			return new Result(400, "存在该任务");
 		}
@@ -157,7 +158,7 @@ public class TaskService{
 		if (task==null) {
 			return new Result(400, "不存在该任务");
 		}
-		Record taskName = Db.findFirst("SELECT * from task WHERE is_delete < 1 AND name ='"+name+"'");
+		Record taskName = Db.findFirst(SQL.FIND_TASK_BY_NAME+"'"+name+"'");
 		if (taskName!=null) {
 			return new Result(400, "存在该任务");
 		}
@@ -272,7 +273,7 @@ public class TaskService{
 	 * @return
 	 */
 	public Result deleteTaskRelation(int id) {
-		List<Record> taskRelations = Db.find("SELECT * FROM task_relation WHERE is_delete <1 AND current_task = "+id);
+		List<Record> taskRelations = Db.find(SQL.FIND_TASK_RELATION_BY_CURRENT_TASK+id);
 		if (taskRelations.size()<=0) {
 			return new Result(400, "该任务没有前置任务！");
 		}
@@ -298,7 +299,7 @@ public class TaskService{
 	 * @return
 	 */
 	public Result deletePersonnelTask(int id) {
-		List<Record> personnelTasks = Db.find("SELECT id FROM personnel_task WHERE is_delete < 1 AND task = "+id);
+		List<Record> personnelTasks = Db.find(SQL.FIND_PERSONNEL_TASK_BY_TASK+id);
 		if (personnelTasks.size()<=0) {
 			return new Result(400, "该任务没有人员任务！");
 		}
@@ -325,7 +326,7 @@ public class TaskService{
 	 * @return  返回信息提示用户
 	 */
 	public Result addTaskRelation(int predecessorTaskId,int currentTask) {
-		List<Record> taskRelations = Db.find("SELECT * FROM task_relation WHERE is_delete <1 AND current_task = "+currentTask);
+		List<Record> taskRelations = Db.find(SQL.FIND_TASK_RELATION_BY_CURRENT_TASK+currentTask);
 		if (taskRelations.size()>0) {
 			for (int i = 0; i < taskRelations.size(); i++) {
 				Object findPredecessorTask = taskRelations.get(i).get("predecessor_task");
@@ -362,7 +363,7 @@ public class TaskService{
 	 */
 	public Result updateTaskRelation(int currentTask) {
 		Result result = new Result(400, "修改前置任务失败");
-		List<Record> taskRelations = Db.find("SELECT * FROM task_relation WHERE is_delete <1 AND current_task = "+currentTask);
+		List<Record> taskRelations = Db.find(SQL.FIND_TASK_RELATION_BY_CURRENT_TASK+currentTask);
 		if (taskRelations.size()>0) {
 				for (Record record : taskRelations) {
 					record.set("is_delete", DeleteStatus.IS_DELETE_OFF);
@@ -384,7 +385,7 @@ public class TaskService{
 	 * @return   返回信息提示用户
 	 */
 	public Result addPersonnelTask(int task,int personnel) {
-		List<Record> personnelTasks = Db.find("SELECT * FROM personnel_task WHERE is_delete < 1 AND task = "+task);
+		List<Record> personnelTasks = Db.find(SQL.FIND_PERSONNEL_TASK_BY_TASK+task);
 		if (personnelTasks.size()>0) {
 			for (int i = 0; i < personnelTasks.size(); i++) {
 				boolean b = personnelTasks.get(i).get("personnel").equals(personnel);
@@ -415,7 +416,7 @@ public class TaskService{
 	 */
 	public Result updatePersonnelTask(int task) {
 		Result result = new Result(400, "修改人员任务失败");
-		List<Record> personnelTasks = Db.find("SELECT * FROM personnel_task WHERE is_delete < 1 AND task = "+task);
+		List<Record> personnelTasks = Db.find(SQL.FIND_PERSONNEL_TASK_BY_TASK+task);
 		if (personnelTasks.size()>0) {
 			for (int i = 0; i < personnelTasks.size(); i++) {
 				Record record = personnelTasks.get(i);
@@ -440,7 +441,7 @@ public class TaskService{
 	 */
 	public Result handleDateInfo(int personnel,Date frontStartDate,Date frontPlansEndEate,boolean isCoerce) {
 		//查询人员任务
-		List<Record> personnelTasks = Db.find("SELECT * FROM personnel_task WHERE is_delete < 1 AND personnel = " +personnel);
+		List<Record> personnelTasks = Db.find(SQL.FIND_PERSONNEL_TASK_BY_PERSONNEL+personnel);
 		//任务id
 		int taskId = 0;
 		//查询出的任务开始时间
@@ -452,7 +453,7 @@ public class TaskService{
 		for (int i = 0; i < personnelTasks.size(); i++) {
 			taskId = personnelTasks.get(i).get("task");
 			//查询任务
-			List<Record> tasks = Db.find("SELECT id,start_date,plans_end_date from task WHERE is_delete < 1 AND id = "+taskId);
+			List<Record> tasks = Db.find(SQL.FIND_TASK_BY_ID_ALL_INFO+taskId);
 			for (Record task : tasks) {
 				startDate = task.get("start_date");
 				plansEndDate = task.get("plans_end_date");
@@ -475,7 +476,7 @@ public class TaskService{
 	 * @return 任务信息
 	 */
 	public Record findOneTask(String name) {
-		Record task = Db.findFirst("SELECT id,name FROM task WHERE is_delete <1 AND name ='"+name+"'");
+		Record task = Db.findFirst(SQL.FIND_TASK_BY_NAME+"'"+name+"'");
 		return task;
 	}
 	

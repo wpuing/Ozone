@@ -8,6 +8,7 @@ import com.jimi.ozone_server.comm.constant.DeleteStatus;
 import com.jimi.ozone_server.comm.model.Result;
 import com.jimi.ozone_server.comm.model.TaskClassify;
 import com.jimi.ozone_server.comm.service.base.BaseMethodService;
+import com.jimi.ozone_server.comm.service.base.SQL;
 
 /**
  * 任务分类管理业务类
@@ -24,7 +25,7 @@ public class TaskClassifyService{
 	 * @return 提示用户
 	 */
 	public Result deleteTaskClassify(int id) {
-		String sql = "SELECT id,name FROM task_classify WHERE is_delete < 1 AND id = "+id;
+		String sql = SQL.FIND_TASK_CLASSIFY_BY_ID+id;
 		String tableName = "task_classify";
 		//调用公共删除方法
 		Result result = BaseMethodService.deleteTableRecord(tableName, sql);
@@ -41,30 +42,30 @@ public class TaskClassifyService{
 		List<Record> taskClassifys = null;
 		if (gantt>0) {
 			//查询甘特图是否存在
-			List<Record> gantts = Db.find("SELECT id FROM gantt WHERE is_delete <1 AND id ="+gantt);
+			List<Record> gantts = Db.find(SQL.FIND_GANTT_BY_ID+gantt);
 			if (gantts.size()<=0) {
 				// 判断name不为空
 				if (!"".equals(name) && name != null) {
 					// 甘特图不存在，name存在
-					taskClassifys = Db.find("SELECT id,name,remark,gantt FROM task_classify WHERE is_delete <1 AND name LIKE '%"+name+"%'");
+					taskClassifys = Db.find(SQL.FIND_TASK_CLASSIFY_BY_NAME_LIKE+"'%"+name+"%'");
 				}else {
-					taskClassifys = Db.find("SELECT id,name,remark,gantt FROM task_classify WHERE gantt="+gantt+" AND is_delete <1");
+					taskClassifys = Db.find(SQL.FIND_TASK_CLASSIFY_BY_GANTT+gantt);
 				}
 			}else {
 				if (!"".equals(name) && name != null) {
 					// 甘特图存在，name存在
 					taskClassifys = Db.find("SELECT id,name,remark,gantt FROM task_classify WHERE gantt="+gantt+" AND is_delete <1 AND name LIKE '%"+name+"%'");
 				}else {
-					taskClassifys = Db.find("SELECT id,name,remark,gantt FROM task_classify WHERE gantt="+gantt+" AND is_delete <1");
+					taskClassifys = Db.find(SQL.FIND_TASK_CLASSIFY_BY_GANTT+gantt);
 				}
 			}
 		}
 		//甘特图id无，任务分类为空
 		if (gantt==0) {
 			if (!"".equals(name) && name != null) {
-				taskClassifys = Db.find("SELECT id,name,remark,gantt FROM task_classify WHERE is_delete <1 AND name LIKE '%"+name+"%'");
+				taskClassifys = Db.find(SQL.FIND_TASK_CLASSIFY_BY_NAME_LIKE+"'%"+name+"%'");
 			}else {
-				taskClassifys = Db.find("SELECT id,name,remark,gantt FROM task_classify WHERE  is_delete <1");
+				taskClassifys = Db.find(SQL.FIND_TASK_CLASSIFY_ALL);
 			}
 		}
 		if (gantt<0) {
@@ -85,16 +86,16 @@ public class TaskClassifyService{
 		if (id<=0) {
 			return new Result(400, "任务分类不存在");
 		}else {
-			Record taskClassify = Db.findFirst("SELECT id,name,remark,gantt FROM task_classify WHERE is_delete < 1 AND id = "+id);
+			Record taskClassify = Db.findFirst(SQL.FIND_TASK_CLASSIFY_BY_ID_REMARK+id);
 			if (taskClassify == null) {
 				return new Result(400, "任务分类不存在");
 			}
-			List<Record> gantts = Db.find("SELECT id FROM gantt WHERE is_delete <1 AND id ="+gantt);
+			List<Record> gantts = Db.find(SQL.FIND_GANTT_BY_ID+gantt);
 			if (gantts.size()<=0) {
 				return new Result(400, "甘特图不存在");
 			}
 			if (name!=null&&!"".equals(name)) {
-				List<Record> taskClassifys = Db.find("SELECT id,name,remark,gantt FROM task_classify WHERE name = '"+name+"' AND is_delete < 1; ");
+				List<Record> taskClassifys = Db.find(SQL.FIND_TASK_CLASSIFY_BY_NAME+"'"+name+"'");
 				if (taskClassifys.size()>0) {
 					return new Result(400, "存在该任务分类");
 				}
@@ -118,7 +119,7 @@ public class TaskClassifyService{
 	 * @return
 	 */
 	public Result addTaskClassify(String name,String remark,int gantt) {
-		List<Record> gantts = Db.find("SELECT id FROM gantt WHERE is_delete <1 AND id ="+gantt);
+		List<Record> gantts = Db.find(SQL.FIND_GANTT_BY_ID+gantt);
 		if (gantts.size()<0) {
 			return new Result(400, "甘特图不存在");
 		}
